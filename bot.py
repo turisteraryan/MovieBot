@@ -1,4 +1,3 @@
-import os
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -14,12 +13,11 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 🔹 Made by: @ClientName
 """
 
-bot_token = os.getenv("BOT_TOKEN")  # Retrieve the bot token from environment variables
-bot = telebot.TeleBot(bot_token)
+# Replace with your actual bot token
+bot = telebot.TeleBot("7363207504:AAFJHH-8aX9RW0ivEBiBg7zpGXZXDFSDHIc")
 
-# Retrieve the admin IDs from environment variables and convert them to a list of integers
-admin_ids = list(map(int, os.getenv("ADMIN_IDS").split(',')))
-
+# Define Admin IDs
+admin_ids = [6440720372]  # Add more admin IDs as needed
 
 # To keep track of what we're asking from the admin
 upload_states = {}
