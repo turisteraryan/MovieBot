@@ -9,7 +9,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 🔹 Version: 1.0.0
 🔹 Release Date: September 7, 2024
 🔹 Last Update: -
-🔹 Developed by: @CodaZenith
+🔹 Developed by: @Krrishsoni5
 🔹 Made by: @ClientName
 """
 
