@@ -9,8 +9,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 🔹 Version: 1.0.0
 🔹 Release Date: September 7, 2024
 🔹 Last Update: -
-🔹 Developed by: @Krrishsoni5
-🔹 Made by: @ClientName
+🔹 Developed by: @CodaZenith 
+🔹 Made by: @Krrishsoni5
 """
 
 # Replace with your actual bot token
@@ -35,7 +35,7 @@ def send_welcome(message):
         "🎥 Get detailed information on trending movies.\n"
         "💬 Need suggestions? Just ask, and I'll recommend the best flicks!\n\n"
         "Please send me any movie name, and I'll try to find it for you! 🎞️\n\n"
-        "<b>Made by</b> @ClientName\n"
+        "<b>Made by</b> @Krrishsoni5\n"
         "<b>Developed by</b> @CodaZenith"
     )
     bot.reply_to(message, welcome_message, parse_mode='HTML')
@@ -46,22 +46,22 @@ def initiate_upload_file(message):
         bot.reply_to(message, "🎬 You are authorized to upload a movie! Please send me the <b>movie name</b> first.", parse_mode='HTML')
         upload_states[message.from_user.id] = {'step': 'name', 'type': 'file'}
     else:
-        bot.reply_to(message, "🚫 You are not authorized to upload movies.")
+        bot.reply_to(message, "🚫 You are not authorized to *upload movies*.")
 
 @bot.message_handler(commands=['upload'])
 def initiate_upload(message):
     if message.from_user.id in admin_ids:
-        bot.reply_to(message, "🎬 You are authorized to upload a movie with more details! Please send me the <b>movie thumbnail</b> first.", parse_mode='HTML')
+        bot.reply_to(message, "🎬 You are authorized to *upload a movie* with more details! Please send me the <b>movie thumbnail</b> first.", parse_mode='HTML')
         upload_states[message.from_user.id] = {'step': 'thumbnail', 'type': 'detailed'}
     else:
-        bot.reply_to(message, "🚫 You are not authorized to upload movies.")
+        bot.reply_to(message, "🚫 You are not authorized to *upload movies*.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_thumbnail(message):
     user_id = message.from_user.id
     if user_id in admin_ids and upload_states.get(user_id, {}).get('step') == 'thumbnail':
         upload_states[user_id]['thumbnail'] = message.photo[-1].file_id
-        bot.reply_to(message, "👍 Thumbnail received! Now, please send me the <b>movie name</b>.", parse_mode='HTML')
+        bot.reply_to(message, "👍 *Thumbnail received!* Now, please send me the <b>movie name</b>.", parse_mode='HTML')
         upload_states[user_id]['step'] = 'name'
 
 @bot.message_handler(func=lambda message: message.from_user.id in admin_ids and upload_states.get(message.from_user.id, {}).get('step') == 'name')
@@ -69,7 +69,7 @@ def handle_name(message):
     user_id = message.from_user.id
     upload_states[user_id]['name'] = message.text.strip()
     if upload_states[user_id]['type'] == 'file':
-        bot.reply_to(message, "🎞️ Got it! Please send me the <b>movie video file</b> (or any file).", parse_mode='HTML')
+        bot.reply_to(message, "🎞️ *Got it!* Please send me the <b>movie video file</b> (or any file).", parse_mode='HTML')
         upload_states[user_id]['step'] = 'file'
     elif upload_states[user_id]['type'] == 'detailed':
         bot.reply_to(message, "Now, please send me the <b>button titles</b> and <b>download links</b> in this format:\n\n<b>Format:</b>\nButtonTitle1 - URL1_!ButtonTitle2 - URL2, ButtonTitle3 - URL3_!ButtonTitle4 - URL4\n\nWhen you're done, type /finish to complete the upload.", parse_mode='HTML')
