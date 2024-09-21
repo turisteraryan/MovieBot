@@ -1,5 +1,7 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import threading
+import time
 
 """
 🔹 Title: Ultimate Movie Download Bot
@@ -9,8 +11,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 🔹 Version: 1.0.0
 🔹 Release Date: September 7, 2024
 🔹 Last Update: -
-🔹 Developed by: @CodaZenith 
-🔹 Made by: @Krrishsoni5
+🔹 Developed by: @CodaZenith
+🔹 Made by: @ClientName
 """
 
 # Replace with your actual bot token
@@ -24,9 +26,11 @@ upload_states = {}
 
 # Storage for uploaded movies
 movies_db = {}
+bot_stats = {'user_starts': 0, 'movies_uploaded': 0, 'movies_deleted': 0}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    bot_stats['user_starts'] += 1
     welcome_message = (
         "🎬 <b>Welcome to the Ultimate Movie Download Bot!</b> 🎉\n\n"
         "Looking for the latest blockbusters or timeless classics? You've come to the right place! 🍿\n\n"
@@ -46,22 +50,22 @@ def initiate_upload_file(message):
         bot.reply_to(message, "🎬 You are authorized to upload a movie! Please send me the <b>movie name</b> first.", parse_mode='HTML')
         upload_states[message.from_user.id] = {'step': 'name', 'type': 'file'}
     else:
-        bot.reply_to(message, "🚫 You are not authorized to *upload movies*.")
+        bot.reply_to(message, "🚫 You are not authorized to upload movies.")
 
 @bot.message_handler(commands=['upload'])
 def initiate_upload(message):
     if message.from_user.id in admin_ids:
-        bot.reply_to(message, "🎬 You are authorized to *upload a movie* with more details! Please send me the <b>movie thumbnail</b> first.", parse_mode='HTML')
+        bot.reply_to(message, "🎬 You are authorized to upload a movie with more details! Please send me the <b>movie thumbnail</b> first.", parse_mode='HTML')
         upload_states[message.from_user.id] = {'step': 'thumbnail', 'type': 'detailed'}
     else:
-        bot.reply_to(message, "🚫 You are not authorized to *upload movies*.")
+        bot.reply_to(message, "🚫 You are not authorized to upload movies.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_thumbnail(message):
     user_id = message.from_user.id
     if user_id in admin_ids and upload_states.get(user_id, {}).get('step') == 'thumbnail':
         upload_states[user_id]['thumbnail'] = message.photo[-1].file_id
-        bot.reply_to(message, "👍 *Thumbnail received!* Now, please send me the <b>movie name</b>.", parse_mode='HTML')
+        bot.reply_to(message, "👍 Thumbnail received! Now, please send me the <b>movie name</b>.", parse_mode='HTML')
         upload_states[user_id]['step'] = 'name'
 
 @bot.message_handler(func=lambda message: message.from_user.id in admin_ids and upload_states.get(message.from_user.id, {}).get('step') == 'name')
@@ -69,7 +73,7 @@ def handle_name(message):
     user_id = message.from_user.id
     upload_states[user_id]['name'] = message.text.strip()
     if upload_states[user_id]['type'] == 'file':
-        bot.reply_to(message, "🎞️ *Got it!* Please send me the <b>movie video file</b> (or any file).", parse_mode='HTML')
+        bot.reply_to(message, "🎞️ Got it! Please send me the <b>movie video file</b> (or any file).", parse_mode='HTML')
         upload_states[user_id]['step'] = 'file'
     elif upload_states[user_id]['type'] == 'detailed':
         bot.reply_to(message, "Now, please send me the <b>button titles</b> and <b>download links</b> in this format:\n\n<b>Format:</b>\nButtonTitle1 - URL1_!ButtonTitle2 - URL2, ButtonTitle3 - URL3_!ButtonTitle4 - URL4\n\nWhen you're done, type /finish to complete the upload.", parse_mode='HTML')
@@ -80,15 +84,20 @@ def handle_movie_file(message):
     user_id = message.from_user.id
     if user_id in admin_ids and upload_states.get(user_id, {}).get('step') == 'file':
         movie_name = upload_states[user_id]['name']
-        movie_file = message.video.file_id if message.content_type == 'video' else message.document.file_id
+        try:
+            movie_file = message.video.file_id if message.content_type == 'video' else message.document.file_id
 
-        # Save the movie to the database
-        movies_db[movie_name.lower()] = {'file': movie_file, 'name': movie_name}
+            # Save the movie to the database
+            movies_db[movie_name.lower()] = {'file': movie_file, 'name': movie_name}
+            bot_stats['movies_uploaded'] += 1
 
-        bot.reply_to(message, f"✅ Movie '<b>{movie_name}</b>' has been uploaded successfully!", parse_mode='HTML')
+            bot.reply_to(message, f"✅ Movie '<b>{movie_name}</b>' has been uploaded successfully!", parse_mode='HTML')
 
-        # Clear the user's upload state
-        del upload_states[user_id]
+            # Clear the user's upload state
+            del upload_states[user_id]
+        except Exception as e:
+            bot.reply_to(message, "❌ An error occurred while uploading the movie. Please try again.")
+            print(f"Error while handling movie file upload: {e}")
 
 @bot.message_handler(func=lambda message: message.from_user.id in admin_ids and upload_states.get(message.from_user.id, {}).get('step') == 'buttons')
 def handle_buttons(message):
@@ -123,14 +132,13 @@ def handle_buttons(message):
 def remove_movie(message):
     if message.from_user.id in admin_ids:
         if message.reply_to_message:
-            # Handle removal by replying to a movie name or video file
             movie_name = message.reply_to_message.text.strip().lower() if message.reply_to_message.text else None
         else:
-            # Handle removal by specifying the movie name directly in the command
             movie_name = message.text.split('/remove ', 1)[-1].strip().lower()
 
         if movie_name in movies_db:
             del movies_db[movie_name]
+            bot_stats['movies_deleted'] += 1
             bot.reply_to(message, f"✅ Movie '<b>{movie_name}</b>' has been successfully removed from the database.", parse_mode='HTML')
         else:
             bot.reply_to(message, f"❌ Movie '<b>{movie_name}</b>' not found in the database.", parse_mode='HTML')
@@ -156,4 +164,33 @@ def search_movie(message):
         bot.delete_message(message.chat.id, checking_message.message_id)
         bot.reply_to(message, f"❌ Sorry, we couldn't find the movie '<b>{message.text.strip()}</b>' in our database.", parse_mode='HTML')
 
-bot.infinity_polling()
+@bot.message_handler(commands=['stats'])
+def show_stats(message):
+    if message.from_user.id in admin_ids:
+        stats_message = (
+            f"📊 <b>Bot Statistics:</b>\n"
+            f"👥 Users Started Bot: {bot_stats['user_starts']}\n"
+            f"🎬 Movies Uploaded: {bot_stats['movies_uploaded']}\n"
+            f"❌ Movies Deleted: {bot_stats['movies_deleted']}\n"
+        )
+        bot.reply_to(message, stats_message, parse_mode='HTML')
+    else:
+        bot.reply_to(message, "🚫 You are not authorized to view statistics.")
+
+def delete_old_movies():
+    while True:
+        time.sleep(21600)  # Wait for 6 hours
+        deleted_count = 0
+        for movie_name in list(movies_db.keys()):
+            del movies_db[movie_name]
+            deleted_count += 1
+        bot_stats['movies_deleted'] += deleted_count
+        print(f"Deleted {deleted_count} old movies from the database.")
+
+# Start the deletion thread
+deletion_thread = threading.Thread(target=delete_old_movies, daemon=True)
+deletion_thread.start()
+
+if __name__ == "__main__":
+    bot.polling(none_stop=True)
+    
